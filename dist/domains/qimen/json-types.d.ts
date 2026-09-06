@@ -13,6 +13,7 @@ export interface QimenCanonicalJSON {
         节气范围?: string;
         盘式?: string;
         定局法?: string;
+        算法版本?: string;
     };
     九宫盘: QimenPalaceJSON[];
     空亡信息?: {

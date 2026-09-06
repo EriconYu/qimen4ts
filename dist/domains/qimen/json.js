@@ -37,6 +37,7 @@ function renderQimenCanonicalJSON(result, options = {}) {
             basicInfo.节气范围 = result.dateInfo.solarTermRange;
         basicInfo.盘式 = result.panType;
         basicInfo.定局法 = result.juMethod;
+        basicInfo.算法版本 = result.algorithmVersion;
     }
     const dayKongPalaces = new Set(result.kongWang.dayKong.palaces);
     const hourKongPalaces = new Set(result.kongWang.hourKong.palaces);

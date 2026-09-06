@@ -23,6 +23,8 @@ console.log(toQimenText(chart));
 
 时间参数使用当地墙上时间。时区必须是 IANA 时区名。
 
+返回结果带有 `algorithmVersion: qimen-zhuanpan-chaibu-v1`。排盘采用转盘奇门拆补法，23:00 起按次日子时处理；日期、时间和选项会严格校验，不会接受 JavaScript 自动归一化后的无效日期。
+
 ## 依赖与许可证
 
 排盘核心依赖 `taobi`，历法依赖 `lunar-javascript`；分发时须同时遵守上游许可证，详见 `NOTICE`。

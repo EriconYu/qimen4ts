@@ -1,6 +1,6 @@
 {
   "name": "qimen4ts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "奇门遁甲排盘引擎（TypeScript）",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

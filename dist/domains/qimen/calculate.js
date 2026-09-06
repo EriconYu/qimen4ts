@@ -77,6 +77,7 @@ const SEASON_WANG_SHUAI = {
 };
 // 三元
 const YUAN_NAMES = ['上元', '中元', '下元'];
+const ALGORITHM_VERSION = 'qimen-zhuanpan-chaibu-v1';
 // ===== 辅助函数 =====
 function getSeason(monthBranch) {
     if (['寅', '卯'].includes(monthBranch))
@@ -104,7 +105,6 @@ function buildMonthPhaseMap(season) {
 function getFormations(heavenStem, earthStem) {
     const formations = [];
     const key = `${heavenStem}+${earthStem}`;
-    const reverseKey = `${earthStem}+${heavenStem}`;
     const FORMATION_MAP = {
         // 吉格
         '乙+丙': '奇仪相佐', '乙+丁': '奇仪相佐', '丙+丁': '星月相会',
@@ -124,8 +124,6 @@ function getFormations(heavenStem, earthStem) {
     };
     if (FORMATION_MAP[key])
         formations.push(FORMATION_MAP[key]);
-    if (FORMATION_MAP[reverseKey] && reverseKey !== key)
-        formations.push(FORMATION_MAP[reverseKey]);
     return formations;
 }
 // 计算旬首
@@ -148,10 +146,36 @@ function assertValidTimeZone(timeZone) {
         throw error;
     }
 }
+function assertValidInput(input) {
+    const values = [input.year, input.month, input.day, input.hour, input.minute ?? 0];
+    if (!values.every(Number.isInteger))
+        throw new Error('日期和时间必须是整数');
+    if (input.year < 1900 || input.year > 2100)
+        throw new Error('year 必须在 1900 到 2100 之间');
+    if (input.month < 1 || input.month > 12)
+        throw new Error('month 必须在 1 到 12 之间');
+    if (input.hour < 0 || input.hour > 23)
+        throw new Error('hour 必须在 0 到 23 之间');
+    if ((input.minute ?? 0) < 0 || (input.minute ?? 0) > 59)
+        throw new Error('minute 必须在 0 到 59 之间');
+    const date = new Date(Date.UTC(input.year, input.month - 1, input.day));
+    if (date.getUTCFullYear() !== input.year ||
+        date.getUTCMonth() !== input.month - 1 ||
+        date.getUTCDate() !== input.day) {
+        throw new Error('日期无效');
+    }
+    if (input.panType != null && input.panType !== 'zhuan')
+        throw new Error('目前仅支持转盘奇门');
+    if (input.juMethod != null && !['chaibu', 'maoshan'].includes(input.juMethod))
+        throw new Error('juMethod 无效');
+    if (input.zhiFuJiGong != null && !['ji_liuyi', 'ji_wugong'].includes(input.zhiFuJiGong))
+        throw new Error('zhiFuJiGong 无效');
+}
 // ===== 核心推演函数 =====
 // 注意：taobi 库依赖 process.env.TZ 来正确解析 Date 对象。
 // 允许在进入 TZ 变异区间之前懒加载依赖，但从设置 process.env.TZ 到 finally 恢复期间绝对不能有 await。
 function calculateQimenData(input) {
+    assertValidInput(input);
     const { year, month, day, hour, minute = 0 } = input;
     const timezone = input.timezone || timezone_utils_js_1.DEFAULT_DIVINATION_TIMEZONE;
     const juMethod = input.juMethod || 'chaibu';
@@ -227,8 +251,15 @@ function calculateQimenData(input) {
                         break;
                     }
                 }
-                // 值使门名：从 mandate 索引获取
+                // mandate 是值使门的本宫索引，不是当前落宫；实际落宫需从已布好的人盘查找。
                 const zhiShiGate = DOOR_NAMES[mandateIdx] || '';
+                let zhiShiPalace = 0;
+                for (let i = 0; i < 9; i++) {
+                    if (t.acquired[i].getDoor(true) === zhiShiGate) {
+                        zhiShiPalace = i;
+                        break;
+                    }
+                }
                 // 月支季节
                 const season = getSeason(monthZhi);
                 const monthPhase = buildMonthPhaseMap(season);
@@ -276,7 +307,7 @@ function calculateQimenData(input) {
                     const stemWangShuai = stemElement ? getWangShuai(stemElement, season) : undefined;
                     const elementState = getWangShuai(PALACE_ELEMENTS[i], season);
                     // 空亡
-                    const isKongWang = dayKongPalaces.includes(i);
+                    const isKongWang = dayKongPalaces.includes(i) || hourKongPalaces.includes(i);
                     // 驿马
                     const isYiMa = yiMaPalace === i;
                     // 入墓
@@ -309,6 +340,7 @@ function calculateQimenData(input) {
                     });
                 }
                 return {
+                    algorithmVersion: ALGORITHM_VERSION,
                     dateInfo: {
                         solarDate: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
                         lunarDate,
@@ -326,7 +358,7 @@ function calculateQimenData(input) {
                     yuan,
                     xunShou,
                     zhiFu: { star: zhiFuStar, palace: zhiFuPalace + 1 },
-                    zhiShi: { gate: zhiShiGate, palace: mandateIdx + 1 },
+                    zhiShi: { gate: zhiShiGate, palace: zhiShiPalace + 1 },
                     palaces,
                     kongWang: {
                         dayKong: {

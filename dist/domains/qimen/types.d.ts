@@ -32,6 +32,7 @@ export interface QimenPalaceInfo {
     isRuMu?: boolean;
 }
 export interface QimenOutput {
+    algorithmVersion: string;
     dateInfo: {
         solarDate: string;
         lunarDate: string;
